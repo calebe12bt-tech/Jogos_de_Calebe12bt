@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Animação 3D: O Botão Brilhante</title>
+<style>
+:root{box-sizing:border-box;--bg:#0e1116}
+html,body{margin:0;height:100%;background:var(--bg);overflow:hidden;font-family:system-ui,sans-serif;color:#fff}
+canvas{display:block;width:100%;height:100%}
+#ui{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 0;display:flex;gap:8px;justify-content:flex-end;pointer-events:none}
+button{pointer-events:auto;padding:8px 12px;border:0;border-radius:10px;background:rgba(0,0,0,.55);color:#fff;font-size:14px;font-weight:600}
+.b{position:fixed;left:0;top:0;max-width:min(260px,70vw);padding:8px 12px;background:#fff;color:#111;border-radius:14px;border:3px solid;font-size:14px;line-height:1.3;pointer-events:none;display:none;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.b b{display:block;font-size:11px;letter-spacing:.5px;margin-bottom:2px;text-transform:uppercase}
+.b::after{content:"";position:absolute;left:50%;bottom:-11px;margin-left:-8px;border:8px solid transparent;border-top-color:inherit;border-bottom:0}
+#fl{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+#end{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);text-align:center;display:none}
+#end div{font-size:30px;font-weight:800;text-shadow:0 2px 8px #000;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div id="ui"><button id="pz">⏸ Pausar</button><button id="rp">↻ Reiniciar</button></div>
+<div id="fl"></div>
+<div id="end"><div>FIM</div><button id="rp2" style="pointer-events:auto">Assistir de novo</button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const T=THREE,$=id=>document.getElementById(id);
+const R=new T.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=true;document.body.prepend(R.domElement);
+const S=new T.Scene();S.background=new T.Color(0x9fd8ff);S.fog=new T.Fog(0x9fd8ff,22,55);
+const C=new T.PerspectiveCamera(50,1,.1,100);
+S.add(new T.HemisphereLight(0xffffff,0x6a8f4a,.85));
+const sun=new T.DirectionalLight(0xfff2cc,.9);sun.position.set(6,10,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12});S.add(sun);
+const mat=c=>new T.MeshLambertMaterial({color:c});
+function M(geo,col,x=0,y=0,z=0,par){const m=new T.Mesh(geo,typeof col=='number'?mat(col):col);m.position.set(x,y,z);m.castShadow=true;par&&par.add(m);return m}
+const SP=r=>new T.SphereGeometry(r,20,14),BX=(w,h,d)=>new T.BoxGeometry(w,h,d),CY=(r,h)=>new T.CylinderGeometry(r,r,h,12);
+function pivot(par,x,y,z){const g=new T.Group();g.position.set(x,y,z);par.add(g);return g}
+/* cenário */
+const gr=M(new T.PlaneGeometry(90,90),0x6fbf5a);gr.rotation.x=-Math.PI/2;gr.castShadow=false;gr.receiveShadow=true;S.add(gr);
+const pa=M(new T.PlaneGeometry(60,5),0xd9c28f,0,.01,0);pa.rotation.x=-Math.PI/2;pa.castShadow=false;pa.receiveShadow=true;S.add(pa);
+[[-8,-6],[-5,-8],[6,-7],[9,-5],[-11,-3],[12,-2],[0,-10],[-14,-9],[14,-9],[3,-12],[-3,-5],[-16,-4],[16,-5]].forEach(([x,z],i)=>{const g=new T.Group(),s=.8+i%3*.25;M(CY(.25,1.4),0x7a5230,0,.7,0,g);M(new T.ConeGeometry(1.1,2,8),0x2f8f46,0,2.2,0,g);M(new T.ConeGeometry(.8,1.6,8),0x37a553,0,3.2,0,g);g.scale.setScalar(s);g.position.set(x,0,z);S.add(g)});
+const cl=[];for(let i=0;i<5;i++){const g=new T.Group();for(let j=0;j<3;j++){const m=M(SP(1.2-j*.15),new T.MeshLambertMaterial({color:0xffffff,fog:false}),j*1.2-1.2,j%2*.3,0,g);m.castShadow=false}g.position.set(-25+i*12,9+i%2*2,-18);S.add(g);cl.push(g)}
+/* personagens */
+function beto(){const g=new T.Group(),p={},bd=0x4a7bd1,hd=0x6a8fe0,gy=0x9aa3b5;
+p.legL=pivot(g,-.2,.5,0);M(BX(.2,.5,.22),gy,0,-.25,0,p.legL);p.legR=pivot(g,.2,.5,0);M(BX(.2,.5,.22),gy,0,-.25,0,p.legR);
+M(BX(.8,.75,.5),bd,0,.88,0,g);M(BX(.3,.3,.05),0xffd34d,0,.9,.26,g);
+p.armL=pivot(g,-.52,1.18,0);M(BX(.15,.55,.15),gy,0,-.27,0,p.armL);p.armR=pivot(g,.52,1.18,0);M(BX(.15,.55,.15),gy,0,-.27,0,p.armR);
+p.head=pivot(g,0,1.52,0);M(BX(.72,.56,.56),hd,0,.27,0,p.head);
+const em=new T.MeshBasicMaterial({color:0x66f5ff});M(BX(.14,.12,.04),em,-.15,.3,.29,p.head);M(BX(.14,.12,.04),em,.15,.3,.29,p.head);
+M(CY(.025,.28),gy,0,.68,0,p.head);M(SP(.07),new T.MeshBasicMaterial({color:0xff4466}),0,.84,0,p.head);
+return{g,p,h:2.5,col:'#4a7bd1',name:'Beto'}}
+function luna(){const g=new T.Group(),p={},o=0xf0933a;
+p.legL=pivot(g,-.18,.45,0);M(CY(.1,.45),o,0,-.22,0,p.legL);p.legR=pivot(g,.18,.45,0);M(CY(.1,.45),o,0,-.22,0,p.legR);
+const b=M(SP(.5),o,0,.95,0,g);b.scale.set(.9,1.1,.8);const bl=M(SP(.35),0xffd9a8,0,.93,.18,g);bl.scale.set(.9,1,.5);
+p.armL=pivot(g,-.46,1.2,0);M(CY(.08,.5),o,0,-.24,0,p.armL);p.armR=pivot(g,.46,1.2,0);M(CY(.08,.5),o,0,-.24,0,p.armR);
+p.head=pivot(g,0,1.55,0);M(SP(.42),o,0,.15,0,p.head);
+for(const s of[-1,1]){const e=M(new T.ConeGeometry(.15,.32,4),o,s*.24,.55,0,p.head);e.rotation.z=-s*.25;M(SP(.07),0x3a2a1a,s*.15,.2,.37,p.head);M(SP(.045),0x7cf59a,s*.15,.2,.41,p.head)}
+M(SP(.05),0xff8aa5,0,.07,.41,p.head);
+p.tail=pivot(g,0,.7,-.4);const tl=M(CY(.06,.7),o,0,.3,-.2,p.tail);tl.rotation.x=-.6;
+return{g,p,h:2.35,col:'#e0791f',name:'Luna'}}
+function gel(){const g=new T.Group(),sl=new T.MeshLambertMaterial({color:0x5ee08a,transparent:true,opacity:.88});
+const b=M(SP(.55),sl,0,.5,0,g);b.scale.set(1.1,.85,1.1);
+for(const s of[-1,1]){M(SP(.13),0xffffff,s*.2,.65,.45,g);M(SP(.07),0x111111,s*.2,.65,.56,g)}
+return{g,p:{},h:1.5,col:'#2fbf6a',name:'Gelinho',slime:1}}
+const B=beto(),L=luna(),G=gel(),CH=[B,L,G];
+for(const c of CH){S.add(c.g);const e=document.createElement('div');e.className='b';e.style.borderColor=c.col;e.innerHTML=`<b style="color:${c.col}">${c.name}</b><span></span>`;document.body.appendChild(e);c.bub=e}
+/* partículas */
+const NP=60,sg=new T.BufferGeometry(),sa=new Float32Array(NP*3),sv=new Float32Array(NP*3);sg.setAttribute('position',new T.BufferAttribute(sa,3));
+const sm=new T.PointsMaterial({color:0xffe066,size:.18,transparent:true,opacity:0,depthWrite:false}),pts=new T.Points(sg,sm);pts.frustumCulled=false;S.add(pts);let spT=0;
+function burst(x,y,z){for(let i=0;i<NP;i++){sa.set([x,y,z],i*3);const a=Math.random()*6.28,e=Math.random()*3+1;sv.set([Math.cos(a)*e,Math.random()*4,Math.sin(a)*e],i*3)}spT=1.1;sg.attributes.position.needsUpdate=true}
+function sparks(dt){if(spT<=0){sm.opacity=0;return}spT-=dt;sm.opacity=Math.min(1,spT);for(let i=0;i<NP*3;i+=3){sa[i]+=sv[i]*dt;sa[i+1]+=sv[i+1]*dt;sa[i+2]+=sv[i+2]*dt;sv[i+1]-=6*dt}sg.attributes.position.needsUpdate=true}
+function flash(){const f=$('fl');f.style.transition='none';f.style.opacity=1;setTimeout(()=>{f.style.transition='opacity .9s';f.style.opacity=0},40)}
+/* direção */
+let t=0,ei=0,paused=false;
+const go=(c,x,z)=>{c.tx=x;c.tz=z},look=(c,o)=>{c.face=Math.atan2(o.g.position.x-c.g.position.x,o.g.position.z-c.g.position.z)};
+const SH={wide:[[0,3.4,9.5],[0,1.1,0]],three:[[0,2.2,7],[0,1,-.5]]};
+const onC=c=>{const x=c.g.position.x,z=c.g.position.z;return[[x*.55,1.9,z+4.8],[x,1.25,z]]};
+const cp=new T.Vector3(),cl2=new T.Vector3(),cpT=new T.Vector3(),clT=new T.Vector3();
+function shot(p,l){cpT.set(...p);clT.set(...l)}
+function say(c,txt,dur,wide){c.say={txt,t0:t,t1:t+dur};c.talk=1;c.bub.style.display='block';wide?shot(...SH.wide):shot(...onC(c))}
+const EV=[
+[0,()=>{go(B,-2.4,0);go(L,2.4,0)}],
+[4,()=>say(B,'Bom dia, Luna! Hoje eu vou testar meu teletransportador.',4)],
+[8.6,()=>say(L,'De novo, Beto? Da última vez você me largou em cima da árvore.',4.4)],
+[13.4,()=>say(B,'Dessa vez eu calculei tudo. Quase tudo.',3.2)],
+[17.2,()=>{shot(...SH.three);G.hidden=0;G.pop=.7}],
+[18.2,()=>go(G,0,-1)],
+[18.8,()=>say(G,'Plop! Posso apertar o botão brilhante?',3.6,1)],
+[22.8,()=>say(L,'NÃO! Esse botão não!',2.4,1)],
+[25.6,()=>say(G,'Apertei! 😄',1.6,1)],
+[26.4,()=>{flash();burst(0,1,0);B.g.position.x=B.tx=2.4;L.g.position.x=L.tx=-2.4;B.spin=L.spin=1.2;look(B,L);look(L,B)}],
+[27.6,()=>{B.flip=1;burst(2.4,.5,0)}],
+[28,()=>say(B,'Funcionou! ...acho. Por que estou de cabeça pra baixo?',4)],
+[32.8,()=>say(L,'Eu avisei. Anota aí: teletransportador, versão 2.',3.6)],
+[37,()=>say(G,'Posso apertar de novo?',2.4,1)],
+[39.8,()=>{$('end').style.display='block';shot(...SH.wide)}]];
+function init(){t=0;ei=0;paused=false;$('pz').textContent='⏸ Pausar';
+B.g.position.set(-10,0,2);L.g.position.set(10,0,-1);G.g.position.set(0,0,-3);
+for(const c of CH){c.tx=c.g.position.x;c.tz=c.g.position.z;c.g.rotation.set(0,c===B?Math.PI/2:c===L?-Math.PI/2:0,0);c.face=c.g.rotation.y;c.ph=0;c.talk=0;c.spin=0;c.pop=0;c.flip=0;c.flipT=0;c.say=null;c.bub.style.display='none'}
+G.hidden=1;spT=0;$('end').style.display='none';shot(...SH.wide);cp.copy(cpT);cl2.copy(clT)}
+function upd(c,dt){const g=c.g,p=c.p,dx=c.tx-g.position.x,dz=c.tz-g.position.z,d=Math.hypot(dx,dz),mv=d>.04&&!c.spin;
+if(mv){const s=Math.min(d,dt*2.4);g.position.x+=dx/d*s;g.position.z+=dz/d*s;c.face=Math.atan2(dx,dz);c.ph+=dt*9}
+if(c.spin>0){c.spin-=dt;g.rotation.y+=dt*13}else{let da=c.face-g.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));g.rotation.y+=da*Math.min(1,dt*8)}
+const sw=mv?Math.sin(c.ph):0;
+if(p.legL){p.legL.rotation.x=sw*.7;p.legR.rotation.x=-sw*.7}
+if(p.armL){p.armL.rotation.x=-sw*.6;p.armR.rotation.x=c.talk?-.9+Math.sin(t*6)*.35:sw*.6}
+if(p.head)p.head.rotation.x=c.talk?Math.sin(t*13)*.07:0;
+if(p.tail)p.tail.rotation.y=Math.sin(t*(c.talk?8:3))*.5;
+let y=0,sx=1,sy=1,ps=1;
+if(c.spin>0)y=Math.abs(Math.sin(c.spin*Math.PI/1.2*2))*.9;
+if(c.slime){sy=.9+.1*Math.sin(t*5+c.ph);sx=1/Math.sqrt(sy);if(mv)y=Math.abs(Math.sin(c.ph*.6))*.5}
+c.flipT+=((c.flip?1:0)-c.flipT)*Math.min(1,dt*10);g.rotation.z=c.flipT*Math.PI;y+=c.flipT*2.1;
+if(c.hidden)ps=0;else if(c.pop>0){c.pop-=dt;const u=1-Math.max(0,c.pop)/.7;ps=1+2.70158*Math.pow(u-1,3)+1.70158*Math.pow(u-1,2)}
+g.position.y=y;g.scale.set(sx*ps,sy*ps,sx*ps)}
+const v3=new T.Vector3();
+function bubble(c){const s=c.say;if(!s)return;if(t>s.t1){c.say=null;c.talk=0;c.bub.style.display='none';return}
+const a=[...s.txt],n=Math.floor((t-s.t0)*34);c.bub.lastChild.innerHTML=a.slice(0,n).join('')+'<i style="visibility:hidden">'+a.slice(n).join('')+'</i>';
+v3.copy(c.g.position);v3.y+=c.flip?.5:c.h;v3.project(C);const e=c.bub;
+if(v3.z>1){e.style.visibility='hidden';return}e.style.visibility='visible';
+const w=e.offsetWidth,h=e.offsetHeight;let x=(v3.x+1)/2*innerWidth,y=(1-v3.y)/2*innerHeight;
+x=Math.max(w/2+8,Math.min(innerWidth-w/2-8,x));y=Math.max(54,y-h-14);e.style.transform=`translate(${x-w/2}px,${y}px)`}
+function resize(){R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+$('pz').onclick=()=>{paused=!paused;$('pz').textContent=paused?'▶ Continuar':'⏸ Pausar'};$('rp').onclick=init;$('rp2').onclick=init;
+init();const clk=new T.Clock();
+function frame(){requestAnimationFrame(frame);const dt=Math.min(clk.getDelta(),.05);
+if(!paused){t+=dt;while(ei<EV.length&&EV[ei][0]<=t)EV[ei++][1]();for(const c of CH)upd(c,dt);sparks(dt);for(const g of cl){g.position.x+=dt*.4;if(g.position.x>30)g.position.x=-30}}
+const k=Math.max(1,.85/C.aspect),q=cpT.clone().sub(clT).multiplyScalar(k).add(clT),a=1-Math.exp(-dt*2.5);
+cp.lerp(q,a);cl2.lerp(clT,a);C.position.copy(cp);C.lookAt(cl2);
+for(const c of CH)bubble(c);R.render(S,C)}
+frame();
+</script>
+</body>
+</html>

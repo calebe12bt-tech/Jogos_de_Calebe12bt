@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inferno 3D</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#0e0e12;--fg:#eee;--pad:#23232b}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#e9e9e4;--fg:#111;--pad:#cfcfc8}}
+:root[data-theme="light"]{--bg:#e9e9e4;--fg:#111;--pad:#cfcfc8}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;padding:8px;max-width:640px;margin-inline:auto;user-select:none;-webkit-user-select:none}
+canvas{width:100%;display:block;background:#000;border-radius:10px;image-rendering:pixelated;touch-action:none}
+#ctl{display:flex;gap:10px;margin-top:10px;justify-content:space-between}
+.pad{flex:1;max-width:160px;aspect-ratio:1;border-radius:50%;background:var(--pad);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;touch-action:none}
+#fb{background:#c0392b;color:#fff}
+p{font-size:12px;opacity:.7;margin:8px 0 0}
+</style>
+</head>
+<body>
+<canvas id="c" width="320" height="200"></canvas>
+<div id="ctl"><div class="pad" id="jp">MOVER</div><div class="pad" id="tp">GIRAR</div><div class="pad" id="fb">FOGO</div></div>
+<p>Teclado: WASD move, setas giram, espaço atira. Elimine todos os demônios.</p>
+<script>
+const M=["1111111111111111","1..............1","1.22....33....21","1.2......3....21","1.......11.....1","1...3.......2..1","1...3...1......1","1.......1..3...1","1.11........3..1","1.....2.....1..1","1..3..2........1","1..3......11...1","1.........1..2.1","1.2.......1....1","1.2............1","1111111111111111"];
+const cv=document.getElementById('c'),g=cv.getContext('2d'),W=320,H=200,zb=new Array(W);
+const wl=(x,y)=>M[Math.floor(y)][Math.floor(x)]!=='.';
+const free=(x,y)=>!(wl(x-.2,y-.2)||wl(x+.2,y-.2)||wl(x-.2,y+.2)||wl(x+.2,y+.2));
+let px,py,pa,hp,ammo,st,fl,cd,hurt,E,kills,sh,fire=0,jx=0,jy=0,tr=0;const K={};
+function reset(){px=1.5;py=1.5;pa=.8;hp=100;ammo=60;st=0;fl=0;cd=0;hurt=0;kills=0;sh=0;
+E=[[13.5,1.5],[6.5,4.5],[13.5,6.5],[9.5,9.5],[4.5,12.5],[13.5,14.5]].map(([x,y])=>({x,y,hp:3,cd:0,h:0}))}
+function upd(){if(st)return;
+pa+=tr*.05+((K.ArrowRight?1:0)-(K.ArrowLeft?1:0))*.045;
+const f=(K.w||K.ArrowUp?1:0)-(K.s||K.ArrowDown?1:0)-jy,s=(K.d?1:0)-(K.a?1:0)+jx,dx=Math.cos(pa),dy=Math.sin(pa),v=.055;
+const mx=(dx*f-dy*s)*v,my=(dy*f+dx*s)*v;if(free(px+mx,py))px+=mx;if(free(px,py+my))py+=my;
+if(cd>0)cd--;if((fire||K[' '])&&cd<=0&&ammo>0){ammo--;cd=22;fl=5;sh=1}
+for(const e of E){if(e.hp<=0)continue;if(e.h>0)e.h--;const a=px-e.x,b=py-e.y,d=Math.hypot(a,b);
+if(d<9&&d>1){const ex=a/d*.02,ey=b/d*.02;if(free(e.x+ex,e.y))e.x+=ex;if(free(e.x,e.y+ey))e.y+=ey}
+if(d<1.3&&--e.cd<=0){hp-=8;hurt=8;e.cd=45}}
+if(hp<=0){hp=0;st=2}else if(kills>=6)st=1}
+function draw(){g.fillStyle='#1c1c24';g.fillRect(0,0,W,H/2);g.fillStyle='#34302c';g.fillRect(0,H/2,W,H/2);
+const dx=Math.cos(pa),dy=Math.sin(pa),pX=-dy*.66,pY=dx*.66;
+for(let x=0;x<W;x++){const c=2*x/W-1,rx=dx+pX*c||1e-9,ry=dy+pY*c||1e-9;let mx=Math.floor(px),my=Math.floor(py);
+const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry),sx=rx<0?-1:1,sy=ry<0?-1:1;
+let sdx=(rx<0?px-mx:mx+1-px)*ddx,sdy=(ry<0?py-my:my+1-py)*ddy,side=0,t=0;
+while(!t){if(sdx<sdy){sdx+=ddx;mx+=sx;side=0}else{sdy+=ddy;my+=sy;side=1}if(M[my][mx]!=='.')t=M[my][mx]}
+const d=side?sdy-ddy:sdx-ddx;zb[x]=d;const h=H/d,k=Math.max(.25,1-d/12)*(side?.7:1),col=[[190,50,50],[50,120,190],[90,170,60]][t-1];
+g.fillStyle=`rgb(${col[0]*k|0},${col[1]*k|0},${col[2]*k|0})`;g.fillRect(x,(H-h)/2,1,h)}
+const S=E.filter(e=>e.hp>0).map(e=>{const a=e.x-px,b=e.y-py,det=1/(pX*dy-dx*pY);return{e,tx:det*(dy*a-dx*b),ty:det*(-pY*a+pX*b)}}).filter(s=>s.ty>.2).sort((a,b)=>b.ty-a.ty);
+let tg=null;
+for(const s of S){const sc=W/2*(1+s.tx/s.ty),sz=H/s.ty*.9,x0=Math.floor(sc-sz/2),top=(H-sz)/2+sz*.1,hit=s.e.h>0;
+if(Math.abs(sc-W/2)<sz*.22&&s.ty<zb[W/2|0])tg=s.e;
+for(let x=Math.max(0,x0);x<Math.min(W,x0+sz);x++){if(s.ty>=zb[x])continue;const u=(x-x0)/sz;
+g.fillStyle=hit?'#fff':'#a22';if(u>.15&&u<.85)g.fillRect(x,top+sz*.35,1,sz*.55);
+g.fillStyle=hit?'#fff':'#722';if(u<.15||u>.85)g.fillRect(x,top+sz*.38,1,sz*.35);
+g.fillStyle=hit?'#fff':'#c85';if(u>.3&&u<.7)g.fillRect(x,top,1,sz*.35);
+g.fillStyle='#ff0';if((u>.38&&u<.44)||(u>.56&&u<.62))g.fillRect(x,top+sz*.1,1,sz*.05)}}
+if(sh){sh=0;if(tg){tg.hp-=2;tg.h=6;if(tg.hp<=0)kills++}}
+g.fillStyle='#444';g.fillRect(W/2-16,H-44+(fl>0?4:0),32,44);g.fillStyle='#777';g.fillRect(W/2-6,H-62+(fl>0?4:0),12,24);
+if(fl>0){g.fillStyle='#fd4';g.beginPath();g.arc(W/2,H-66,12,0,7);g.fill();fl--}
+g.fillStyle='#fff';g.fillRect(W/2-1,H/2-5,2,10);g.fillRect(W/2-5,H/2-1,10,2);
+if(hurt>0){g.fillStyle='rgba(255,0,0,.3)';g.fillRect(0,0,W,H);hurt--}
+g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,W,14);g.fillStyle='#fff';g.font='10px monospace';g.fillText(`VIDA ${hp}   MUN ${ammo}   DEMONIOS ${6-kills}`,6,10);
+if(st){g.fillStyle='rgba(0,0,0,.65)';g.fillRect(0,0,W,H);g.fillStyle=st==1?'#6f6':'#f55';g.font='bold 20px monospace';g.textAlign='center';
+g.fillText(st==1?'VOCE VENCEU!':'VOCE MORREU',W/2,H/2-4);g.fillStyle='#fff';g.font='11px monospace';g.fillText('Toque para reiniciar',W/2,H/2+16);g.textAlign='left'}}
+const cl=v=>Math.max(-1,Math.min(1,v));
+function pad(el,mv,up,dn){let on=0,ox,oy;el.addEventListener('pointerdown',e=>{on=1;el.setPointerCapture(e.pointerId);const r=el.getBoundingClientRect();ox=r.left+r.width/2;oy=r.top+r.height/2;mv&&mv(e,ox,oy);dn&&dn()});
+el.addEventListener('pointermove',e=>{if(on&&mv)mv(e,ox,oy)});['pointerup','pointercancel'].forEach(n=>el.addEventListener(n,()=>{on=0;up()}))}
+pad(document.getElementById('jp'),(e,ox,oy)=>{jx=cl((e.clientX-ox)/40);jy=cl((e.clientY-oy)/40)},()=>{jx=jy=0});
+pad(document.getElementById('tp'),(e,ox)=>{tr=cl((e.clientX-ox)/40)},()=>{tr=0});
+pad(document.getElementById('fb'),null,()=>{fire=0},()=>{fire=1});
+cv.addEventListener('pointerdown',()=>{if(st)reset()});
+const kn=e=>e.key.length==1?e.key.toLowerCase():e.key;
+addEventListener('keydown',e=>{K[kn(e)]=1;if(st&&e.key==='Enter')reset()});addEventListener('keyup',e=>{K[kn(e)]=0});
+reset();let last=0,acc=0;
+function loop(t){acc+=Math.min(t-last,100);last=t;while(acc>16.7){upd();acc-=16.7}draw();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
